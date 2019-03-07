@@ -8,6 +8,12 @@ const router = express.Router();
 
 const User = require("../../models/User");
 
+
+//LOAD INPUT VALIDATION
+const validateRegisterInput=require('../../validation/register')
+const validateLoginInput=require('../../validation/login')
+
+
 //@router GET api/users/test
 //@desc   TEST users route
 //@access Public
@@ -19,9 +25,17 @@ router.get("/test", (req, res) => {
 //@desc   register user
 //@access Public
 router.post("/register", (req, res) => {
+  const {errors,isValid}=validateRegisterInput(req.body);
+  //Check Validation
+  if(!isValid){
+    return res.status(400).json(errors)
+  }
+
+
   User.findOne({ email: req.body.email }).then(user => {
     if (user) {
-      res.status(400).json({ email: "Email already exists" });
+      errors.email='Email already exists'
+      return res.status(400).json(errors);
     } else {
       const avatar = gravatar.url(req.body.email, {
         s: "200", //size
@@ -53,6 +67,15 @@ router.post("/register", (req, res) => {
 //@desc   Login User/return JWT token
 //@access Public
 router.post("/login", (req, res) => {
+  const {errors,isValid}=validateLoginInput(req.body);
+  //Check Validation
+  if(!isValid){
+    return res.status(400).json(errors)
+  }
+
+
+
+
   const email = req.body.email;
   const password = req.body.password;
 
@@ -60,7 +83,8 @@ router.post("/login", (req, res) => {
   User.findOne({ email }).then(user => {
     //check for user
     if (!user) {
-      return res.status(404).json({ email: "User not found" });
+      errors.email="User not found"
+      return res.status(404).json(errors);
     }
     //check password
     bcrypt.compare(password, user.password).then(isMatch => {
@@ -77,9 +101,10 @@ router.post("/login", (req, res) => {
 
         });
       } else {
+        errors.password='Password incorrect';
         return res
           .status(400)
-          .json({ password: "Password incorrect" })
+          .json(errors)
             
       }
     });
